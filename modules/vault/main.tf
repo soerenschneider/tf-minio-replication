@@ -11,6 +11,13 @@ resource "vault_kv_secret_v2" "tokens" {
   )
   custom_metadata {
     max_versions = 1
-    data         = var.metadata
+    data         = merge(local.metadata_default, var.metadata)
+  }
+}
+
+locals {
+  metadata_default = {
+    repo       = "https://github.com/soerenschneider/tf-minio-replication"
+    managed-by = "terraform"
   }
 }

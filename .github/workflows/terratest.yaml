@@ -1,0 +1,33 @@
+---
+name: terratest
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  terratest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.1.0
+
+      - uses: actions/setup-go@v5.0.2
+        with:
+          go-version: '1.22'
+
+      - name: Setup Terragrunt
+        uses: autero1/action-terragrunt@v3.0.2
+        with:
+          terragrunt-version: "latest"
+
+      - name: Setup opentofu
+        uses: opentofu/setup-opentofu@v1.0.4
+        with:
+          tofu_wrapper: false
+
+      - name: run terratest
+        run: |
+          make tests

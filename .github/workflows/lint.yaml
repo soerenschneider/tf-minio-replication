@@ -1,0 +1,45 @@
+---
+name: test
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request: {}
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  TF_ENCRYPTION: 'key_provider "pbkdf2" "mykey" {passphrase = "somekeynotverysecure"}'
+
+jobs:
+  fmt:
+    name: fmt
+    runs-on: ubuntu-latest
+    container: ghcr.io/opentofu/opentofu:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: fmt
+        run: tofu fmt -recursive -check
+
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+    container: ghcr.io/opentofu/opentofu:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: validate
+        run: |
+          tofu -chdir=envs/dev init -backend=false
+          tofu -chdir=envs/dev validate
+
+  tflint:
+    name: tflint
+    runs-on: ubuntu-latest
+    container: ghcr.io/soerenschneider/terraform-tools:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: tflint
+        run: tflint --recursive

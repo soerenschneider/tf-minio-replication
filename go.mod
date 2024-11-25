@@ -5,7 +5,7 @@ go 1.22.3
 require (
 	github.com/gruntwork-io/terratest v0.47.2
 	github.com/minio/minio-go/v7 v7.0.78
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 )
 
 require (

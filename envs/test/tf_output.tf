@@ -1,6 +1,9 @@
 output "minio_local_credentials" {
   value = {
-    for k, v in module.users : k => v.access_keys
+    for k, v in merge([
+      for m in [module.users, module.bucket] : m
+      if length(m) > 0
+    ]...) : k => v.access_keys
   }
   sensitive = true
 }

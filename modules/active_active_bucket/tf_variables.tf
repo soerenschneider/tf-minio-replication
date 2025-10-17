@@ -8,6 +8,11 @@ variable "bucket_name" {
   }
 }
 
+variable "create_user" {
+  type    = bool
+  default = true
+}
+
 variable "region" {
   type = string
 }

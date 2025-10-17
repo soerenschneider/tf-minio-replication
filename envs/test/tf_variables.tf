@@ -1,40 +1,34 @@
-variable "minio_source_user" {
-  type = string
-}
-
-variable "minio_source_password" {
-  type = string
-}
-
-variable "minio_target_host" {
-  type = string
-}
-
-variable "minio_target_user" {
-  type = string
-}
-
-variable "minio_target_password" {
-  type = string
-}
-
 variable "buckets" {
   type = list(object({
-    name = string
+    name   = string
+    region = string
 
-    versioning = object({
+    versioning = optional(object({
       enabled           = optional(bool, false)
       exclude_folders   = optional(bool, false)
       excluded_prefixes = optional(list(string), [])
+    }), {})
+
+    replication = optional(object({
+      mode                        = string
+      enabled                     = optional(bool, true)
+      user_name                   = optional(string)
+      site_a_endpoint             = optional(string)
+      site_b_endpoint             = optional(string)
+      region_site_b               = optional(string)
+      bandwidth_limit             = optional(string, "100M")
+      delete_marker_replication   = optional(bool, true)
+      delete_replication          = optional(bool, true)
+      existing_object_replication = optional(bool, true)
+      metadata_sync               = optional(bool, true)
+      prefix                      = optional(string)
+      priority                    = optional(number, 1)
+      tags                        = optional(map(string))
+      }), {
+      mode = ""
     })
 
-    replication = object({
-      mode = string
-      site_a_endpoint       = string
-      site_b_endpoint       = string
-    })
-
-    lifecycle_rules = object({
+    lifecycle_rules = optional(list(object({
       id      = string
       enabled = optional(bool, true)
       prefix  = optional(string, "")
@@ -63,11 +57,9 @@ variable "buckets" {
         days           = number # needed format "Nd"
         storage_class  = string
         newer_versions = optional(number, null)
+      })), [])
     })), [])
-
-    })
   }))
-  default = []
 }
 
 variable "users" {

@@ -1,24 +1,39 @@
-minio_source_password = "minioadmin"
-minio_source_user     = "minioadmin"
-
-minio_target_password = "minioadmin"
-minio_target_user     = "minioadmin"
-minio_target_host     = "http://minio2:9002"
-
-bucket_name = "replicated-2"
 users = [
   {
     name = "test"
   }
 ]
 
-lifecycle_rules = [
+
+buckets = [
   {
-    id      = "test"
-    enabled = true
-    noncurrent_expirations = [{
-      days = 1
-      newer_versions = 3
-    }]
+    name = "replicationtest"
+    region = "dd"
+
+    versioning = {
+      enabled = true
+    }
+
+    replication = {
+      site_a_endpoint       = "https://nas.dd.soeren.cloud:443"
+      site_b_endpoint       = "https://nas.ez.soeren.cloud:443"
+      region_site_a         = "dd"
+      region_site_b         = "ez"
+      user_name = "replication"
+      mode      = "two-way"
+    }
+
+    lifecycle_rules = [
+      {
+        id      = "test"
+        enabled = true
+        noncurrent_expirations = [{
+          days = 1
+          newer_versions = 3
+        }]
+      }
+    ]
   }
 ]
+
+

@@ -15,14 +15,14 @@ resource "minio_s3_bucket_versioning" "bucket_in_a" {
 }
 
 resource "minio_s3_bucket" "bucket_in_b" {
-  count = var.replication_mode != "" ? 1 : 0
+  count = var.replication.mode != "" ? 1 : 0
 
   provider = minio.deployment_b
   bucket   = var.bucket_name
 }
 
 resource "minio_s3_bucket_versioning" "bucket_in_b" {
-  count = var.replication_mode != "" && var.versioning.enabled ? 1 : 0
+  count = var.replication.mode != "" && var.versioning.enabled ? 1 : 0
 
   provider = minio.deployment_b
   bucket   = minio_s3_bucket.bucket_in_b[0].bucket
@@ -80,7 +80,7 @@ resource "minio_ilm_policy" "ilm_policy_bucket_a" {
 }
 
 resource "minio_ilm_policy" "ilm_policy_bucket_b" {
-  count = length(var.lifecycle_rules) > 0 && var.replication_mode != "" ? 1 : 0
+  count = length(var.lifecycle_rules) > 0 && var.replication.mode != "" ? 1 : 0
 
   provider = minio.deployment_b
   bucket   = minio_s3_bucket.bucket_in_b[0].bucket

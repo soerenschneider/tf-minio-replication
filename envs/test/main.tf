@@ -9,18 +9,21 @@ module "bucket" {
   }
   source = "../../modules/active_active_bucket"
 
-  bucket_name           = var.bucket_name
-  lifecycle_rules       = var.lifecycle_rules
+  for_each = {
+    for x in var.buckets : x.name => x
+  }
+
+  bucket_name           = each.value.name
+
+  versioning = each.value.versioning
+
+  lifecycle_rules       = each.value.lifecycle_rules
   site_a_endpoint       = "https://nas.dd.soeren.cloud:443"
   site_b_endpoint       = "https://nas.ez.soeren.cloud:443"
   region_site_a         = "dd"
   region_site_b         = "ez"
   replication_user_name = "replication"
   replication_mode      = "two-way"
-
-  versioning = {
-    enabled = true
-  }
 
   force_destroy = local.instance == "dev" ? true : false
 }

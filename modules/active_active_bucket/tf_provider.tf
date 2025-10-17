@@ -4,6 +4,9 @@ terraform {
     minio = {
       source  = "registry.terraform.io/aminueza/minio"
       version = "3.8.0"
+      configuration_aliases = [
+        minio.deployment_b
+      ]
     }
   }
 }

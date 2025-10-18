@@ -1,31 +1,60 @@
-variable "users" {
-  type = object({
-    user_name = string
-    buckets = map(object({
-      read_paths  = optional(list(string), ["/"])
-      write_paths = optional(list(string), ["/"])
-    }))
-  })
-}
 
-variable "bucket_name" {
-  description = "Name of the bucket to grant access to. Must be a specific bucket, not '*'."
-  type        = string
+variable "buckets" {
+  type = map(object({
+    read_paths  = optional(list(string), ["/"])
+    write_paths = optional(list(string), ["/"])
+  }))
 
   validation {
     condition = alltrue([
-      length(var.bucket_name) > 2,
-      length(var.bucket_name) <= 63,
-      can(regex("^[a-z0-9][a-z0-9\\-\\.]*[a-z0-9]$", var.bucket_name)),
-      !contains([var.bucket_name], "*") # disallow wildcard
+      for bucket_name, config in var.buckets :
+      length(bucket_name) >= 3 && length(bucket_name) <= 63
+      ])
+    error_message = "All bucket names must be between 3 and 63 characters long."
+  }
+
+  validation {
+    condition = alltrue([
+      for bucket_name, config in var.buckets :
+      can(regex("^[a-z0-9][a-z0-9\\-\\.]*[a-z0-9]$", bucket_name))
     ])
-    error_message = <<EOT
-bucket_name must be a valid bucket name:
-- 3 to 63 characters
-- lowercase letters, numbers, dots, and hyphens only
-- cannot start or end with a hyphen or dot
-- cannot be '*'
-EOT
+    error_message = "Bucket names must start and end with a lowercase letter or number, and contain only lowercase letters, numbers, hyphens, and dots."
+  }
+
+  validation {
+    condition = alltrue([
+      for bucket_name, config in var.buckets :
+      bucket_name != "*"
+      ])
+    error_message = "Bucket names cannot be wildcards (*)."
+  }
+
+  validation {
+    condition = alltrue(flatten([
+      for bucket_name, config in var.buckets : [
+        for path in config.read_paths :
+        path != "*"
+      ]
+      ]))
+    error_message = "read_paths cannot contain wildcard (*) values."
+  }
+
+  validation {
+    condition = alltrue(flatten([
+      for bucket_name, config in var.buckets : [
+        for path in config.write_paths :
+        path != "*"
+      ]
+      ]))
+    error_message = "write_paths cannot contain wildcard (*) values."
+  }
+
+  validation {
+    condition = alltrue([
+      for bucket_name, config in var.buckets :
+      length(config.read_paths) > 0 || length(config.write_paths) > 0
+      ])
+    error_message = "At least one of read_paths or write_paths must be non-empty for each bucket."
   }
 }
 
@@ -34,39 +63,31 @@ variable "user_name" {
   type        = string
 }
 
-variable "read_paths" {
-  description = "List of paths the user can read from. Use '/' for full bucket access."
-  type        = list(string)
-  default     = ["/"]
-
-  validation {
-    condition = alltrue([
-      for path in var.read_paths : can(regex("^/", path))
-    ])
-    error_message = "All paths must start with '/', e.g., '/' for root or '/folder/subfolder'."
-  }
-}
-
-variable "write_paths" {
-  description = "List of paths the user can write to. Use '/' for full bucket access."
-  type        = list(string)
-  default     = ["/"]
-
-  validation {
-    condition = alltrue([
-      for path in var.write_paths : can(regex("^/", path))
-    ])
-    error_message = "All paths must start with '/', e.g., '/' for root or '/folder/subfolder'."
-  }
-}
-
 variable "force_destroy" {
   description = "Whether to force destroy user even if it has access keys"
   type        = bool
   default     = true
 }
 
+variable "host_nice_name" {
+  type        = string
+  default     = ""
+  description = "This variable is used to build the path where the secret is written to. Only needed if a user is created."
+
+  validation {
+    condition     = length(var.host_nice_name) == 0 || can(regex("^[a-z0-9-]+$", var.host_nice_name))
+    error_message = "host_nicename may only contain lowercase letters, numbers and hyphens (-)."
+  }
+}
+
 variable "password_store_paths" {
   type        = list(string)
   description = "Paths to write the credentials to."
+
+  validation {
+    condition = alltrue([
+      for path in var.password_store_paths : length(regexall("%s", path)) == 2
+    ])
+    error_message = "Each path must contain exactly two occurrences of '%s'."
+  }
 }

@@ -2,6 +2,7 @@ variable "buckets" {
   type = list(object({
     name   = string
     region = string
+    host_nice_name = string
 
     create_user          = optional(bool, true)
     password_store_paths = optional(list(string))
@@ -18,6 +19,7 @@ variable "buckets" {
       user_name                   = optional(string)
       site_a_endpoint             = optional(string)
       site_b_endpoint             = optional(string)
+      site_b_nice_name            = optional(string)
       region_site_b               = optional(string)
       bandwidth_limit             = optional(string, "100M")
       delete_marker_replication   = optional(bool, true)
@@ -67,8 +69,12 @@ variable "buckets" {
 
 variable "users" {
   type = list(object({
-    name                 = string,
-    directory            = optional(string)
+    name                 = string
+    host_nice_name = string
+    buckets = map(object({
+      read_paths  = optional(list(string), ["/"])
+      write_paths = optional(list(string), ["/"])
+    }))
     password_store_paths = optional(list(string))
   }))
 }

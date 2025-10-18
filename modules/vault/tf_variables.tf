@@ -1,9 +1,20 @@
 variable "access_keys" {
   type = object({
-    name       = string,
-    access_key = string,
-    secret_key = string
+    name           = string
+    host_nice_name = string
+    access_key     = string
+    secret_key     = string
   })
+
+  validation {
+    condition     = can(regex("^[a-z0-9-]+$", var.access_keys.name))
+    error_message = "name may only contain lowercase letters, numbers and hyphens (-)."
+  }
+
+  validation {
+    condition     = can(regex("^[a-z0-9-]+$", var.access_keys.host_nice_name))
+    error_message = "host_nicename may only contain lowercase letters, numbers and hyphens (-)."
+  }
 }
 
 variable "password_store_paths" {
@@ -27,9 +38,9 @@ variable "password_store_paths" {
 
   validation {
     condition = alltrue([
-      for path in var.password_store_paths : can(regex("%s", path))
-    ])
-    error_message = "Each path in password_store_paths must contain the substring '%s'."
+      for path in var.password_store_paths : length(regexall("%s", path)) == 2
+      ])
+    error_message = "Each path must contain exactly two occurrences of '%s'."
   }
 }
 

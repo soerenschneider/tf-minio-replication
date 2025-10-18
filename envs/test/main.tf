@@ -1,6 +1,6 @@
 locals {
   instance                     = basename(abspath(path.module))
-  password_store_paths_default = ["env/${local.instance}/minio-replication/serviceaccount/%s"]
+  password_store_paths_default = ["env/${local.instance}/minio/hosts/%s/svcaccount/%s"]
 }
 
 module "bucket" {
@@ -19,8 +19,9 @@ module "bucket" {
   lifecycle_rules = each.value.lifecycle_rules
   replication     = each.value.replication
 
+  host_nice_name = each.value.host_nice_name
   create_user          = each.value.create_user
-  password_store_paths = each.value.password_store_paths
+  password_store_paths = coalescelist(each.value.password_store_paths, var.password_store_paths, local.password_store_paths_default)
 
   force_destroy = local.instance == "dev" ? true : false
 }
@@ -31,32 +32,43 @@ module "users" {
     for x in var.users : x.name => x
   }
 
-  users = {
-    user_name = "test"
-    buckets = {
-      "replicationtest" = {
-        read_paths  = ["/"]
-        write_paths = ["/uploads"]
-      }
-    }
-  }
-  bucket_name          = "replicationtest"
   user_name            = each.value.name
+  buckets = each.value.buckets
+  host_nice_name = each.value.host_nice_name
   password_store_paths = coalescelist(each.value.password_store_paths, var.password_store_paths, local.password_store_paths_default)
 }
 
-
-module "vault" {
-  # merge non-empty implicit users and explicit users
-  for_each = {
-    for k, v in merge([
-      for m in [module.users, module.bucket] : m
-      if length(m) > 0
-    ]...) : k => v
+locals {
+  # Flatten users - already in the right format (one access_keys object per user)
+  users_for_vault = {
+    for k, v in module.users : k => v
   }
 
-  source               = "../../modules/vault"
-  access_keys          = nonsensitive(each.value.access_keys)
-  password_store_paths = coalescelist(each.value.password_store_paths, var.password_store_paths, local.password_store_paths_default)
-  metadata             = {}
+  # Flatten bucket access keys - create one entry per access key in the list
+  bucket_keys_for_vault = merge([
+    for bucket_key, bucket_value in module.bucket : {
+      for idx, access_key in bucket_value.access_keys :
+      "${bucket_key}-${idx}" => merge(bucket_value, {
+        access_keys = access_key # Single object, not a list
+      })
+    }
+  ]...)
+}
+
+module "vault" {
+  for_each = merge(
+    local.users_for_vault,
+    local.bucket_keys_for_vault
+  )
+
+  source      = "../../modules/vault"
+  access_keys = nonsensitive(each.value.access_keys)
+  password_store_paths = coalescelist(
+    each.value.password_store_paths,
+    var.password_store_paths,
+    local.password_store_paths_default
+  )
+  metadata = {
+    env = local.instance
+  }
 }

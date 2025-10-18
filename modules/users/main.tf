@@ -11,7 +11,7 @@ resource "minio_iam_service_account" "user_key" {
 locals {
   # Compute resources and prefixes per bucket
   user_bucket_resources = {
-    for bucket_name, bucket in var.users.buckets :
+    for bucket_name, bucket in var.buckets :
     bucket_name => {
       read_resources = [
         for path in bucket.read_paths :
@@ -21,8 +21,8 @@ locals {
       write_resources = [
         for path in bucket.write_paths :
         path == "/" ? "arn:aws:s3:::${bucket_name}/*" : "arn:aws:s3:::${bucket_name}${path}/*"
-      if trimspace(path) != ""
-    ]
+        if trimspace(path) != ""
+      ]
       read_prefixes = [
         for path in bucket.read_paths :
         path == "/" ? "*" : "${trimprefix(path, "/")}/*"

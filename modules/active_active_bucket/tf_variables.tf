@@ -95,6 +95,7 @@ variable "replication" {
     user_name                   = optional(string)
     site_a_endpoint             = optional(string)
     site_b_endpoint             = string
+    site_b_nice_name            = string
     region_site_b               = string
     bandwidth_limit             = optional(string, "100M")
     delete_marker_replication   = optional(bool, true)
@@ -124,118 +125,36 @@ For replication mode:
 - "one-way": site_b_endpoint must be set.
 EOT
   }
+
+  validation {
+    condition     = can(regex("^[a-z0-9_-]+$", var.replication.site_b_nice_name))
+    error_message = "site_b_nice_name may only contain lowercase letters, numbers, hyphens (-), and underscores (_)."
+  }
 }
-
-# variable "replication_mode" {
-#   type    = string
-#   default = ""
-#   validation {
-#     condition     = contains(["", local.replication_mode_one_way, local.replication_mode_two_way], var.replication_mode)
-#     error_message = "Must be either \"\", \"${local.replication_mode_one_way}\" or \"${local.replication_mode_two_way}\"."
-#   }
-# }
-
-# Service account for Site A -> Site B replication
-# variable "replication_user_name" {
-#   type    = string
-#   default = ""
-# }
-
-# Site B -> Site A Replication
-# variable "site_a_endpoint" {
-#   type        = string
-#   default     = ""
-#   description = "In a single way replication, this variable specifies the host where data will be replicated"
-#
-#   validation {
-#     condition     = var.site_a_endpoint == "" || can(regex("^https?://.*", var.site_a_endpoint))
-#     error_message = "Target host must be empty or start with either 'http://' or 'https://'."
-#   }
-# }
-#
-# variable "site_b_endpoint" {
-#   type        = string
-#   default     = ""
-#   description = "In a two way replication, this variable specifies the host where data will be replicated from host a"
-#
-#   validation {
-#     condition     = var.site_b_endpoint == "" || can(regex("^https?://.*", var.site_b_endpoint))
-#     error_message = "Target host must be empty or start with either 'http://' or 'https://'."
-#   }
-# }
-#
-# variable "bandwidth_limit" {
-#   type        = string
-#   default     = "100M"
-#   description = "Specifies the maximum bandwidth allowed for replication"
-#
-#   validation {
-#     condition     = can(regex("^\\d+[KMG]$", var.bandwidth_limit))
-#     error_message = "Bandwidth limit must start with a number and end with a unit (e.g., '100M')."
-#   }
-# }
-#
-# variable "region_site_a" {
-#   type    = string
-#   default = "us-east-1"
-# }
-#
-# variable "region_site_b" {
-#   type    = string
-#   default = "us-east-1"
-# }
-
-# variable "replication_delete_marker_replication" {
-#   default = true
-#   type    = bool
-# }
-#
-# variable "replication_delete_replication" {
-#   default = true
-#   type    = bool
-# }
-
-# variable "replication_enabled" {
-#   default = true
-#   type    = bool
-# }
-
-# variable "replication_existing_object_replication" {
-#   default = true
-#   type    = bool
-# }
-
-# variable "replication_metadata_sync" {
-#   default = true
-#   type    = bool
-# }
-#
-# variable "replication_prefix" {
-#   default = null
-#   type    = string
-# }
-#
-# variable "replication_priority" {
-#   default = 1
-#   type    = number
-#
-#   validation {
-#     condition     = var.replication_priority >= 1
-#     error_message = "Replication priority must be at least 1."
-#   }
-# }
-#
-# variable "replication_tags" {
-#   default = {}
-#   type    = map(string)
-# }
 
 variable "force_destroy" {
   default = false
   type    = bool
 }
 
+variable "host_nice_name" {
+  type        = string
+  description = "This variable is used to build the path where the secret is written to. Only needed if a user is created."
+
+  validation {
+    condition     = can(regex("^[a-z0-9-]+$", var.host_nice_name))
+    error_message = "host_nicename may only contain lowercase letters, numbers and hyphens (-)."
+  }
+}
+
 variable "password_store_paths" {
   type        = list(string)
   description = "Paths to write the credentials to."
+
+  validation {
+    condition = alltrue([
+      for path in var.password_store_paths : length(regexall("%s", path)) == 2
+    ])
+    error_message = "Each path must contain exactly two occurrences of '%s'."
+  }
 }

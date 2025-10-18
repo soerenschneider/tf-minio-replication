@@ -1,7 +1,7 @@
 resource "vault_kv_secret_v2" "tokens" {
   for_each            = { for path in var.password_store_paths : path => path }
   mount               = var.vault_kv2_mount
-  name                = format(each.value, var.access_keys.name)
+  name                = format(each.value, var.access_keys.host_nice_name, var.access_keys.name)
   delete_all_versions = true
   data_json = jsonencode(
     {

@@ -1,6 +1,8 @@
 output "access_keys" {
   value = {
-    name       = minio_iam_user.user.name
+    name        = minio_iam_user.user.name
+    host_nice_name = var.host_nice_name
+
     access_key = minio_iam_service_account.user_key.access_key
     secret_key = minio_iam_service_account.user_key.secret_key
   }

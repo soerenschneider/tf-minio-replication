@@ -8,46 +8,73 @@ resource "minio_iam_service_account" "user_key" {
   target_user = minio_iam_user.user.name
 }
 
-# Generate JSON IAM-style policy for MinIO
-data "minio_iam_policy_document" "minio_user_policy" {
-  # READ access
-  dynamic "statement" {
-    for_each = local.has_read_access ? [1] : []
-    content {
-      actions = [
-        "s3:GetObject"
+locals {
+  # Compute resources and prefixes per bucket
+  user_bucket_resources = {
+    for bucket_name, bucket in var.users.buckets :
+    bucket_name => {
+      read_resources = [
+        for path in bucket.read_paths :
+        path == "/" ? "arn:aws:s3:::${bucket_name}/*" : "arn:aws:s3:::${bucket_name}${path}/*"
       ]
-      resources = local.read_resources
+      write_resources = [
+        for path in bucket.write_paths :
+        path == "/" ? "arn:aws:s3:::${bucket_name}/*" : "arn:aws:s3:::${bucket_name}${path}/*"
+      ]
+      read_prefixes = [
+        for path in bucket.read_paths :
+        path == "/" ? "*" : "${trimprefix(path, "/")}/*"
+      ]
+      has_read_access  = length(bucket.read_paths) > 0
+      has_write_access = length(bucket.write_paths) > 0
+    }
+  }
+}
+
+data "minio_iam_policy_document" "minio_user_policy" {
+  # READ access (GetObject)
+  dynamic "statement" {
+    for_each = {
+      for bucket_name, bucket in local.user_bucket_resources :
+      bucket_name => bucket if bucket.has_read_access
+    }
+    content {
+      actions   = ["s3:GetObject"]
+      resources = statement.value.read_resources
     }
   }
 
-  # LIST access (only if read access is configured)
+  # LIST access (ListBucket)
   dynamic "statement" {
-    for_each = local.has_read_access ? [1] : []
+    for_each = {
+      for bucket_name, bucket in local.user_bucket_resources :
+      bucket_name => bucket if bucket.has_read_access
+    }
     content {
       actions   = ["s3:ListBucket"]
-      resources = ["arn:aws:s3:::${var.bucket_name}"]
+      resources = ["arn:aws:s3:::${statement.key}"]
 
       condition {
         test     = "StringLike"
         variable = "s3:prefix"
-        values   = local.read_prefixes
+        values   = statement.value.read_prefixes
       }
     }
   }
 
-  # WRITE access
+  # WRITE access (PutObject/DeleteObject)
   dynamic "statement" {
-    for_each = local.has_write_access ? [1] : []
+    for_each = {
+      for bucket_name, bucket in local.user_bucket_resources :
+      bucket_name => bucket if bucket.has_write_access
+    }
     content {
-      actions = [
-        "s3:PutObject",
-        "s3:DeleteObject"
-      ]
-      resources = local.write_resources
+      actions   = ["s3:PutObject", "s3:DeleteObject"]
+      resources = statement.value.write_resources
     }
   }
 }
+
 
 # MinIO policy resource
 resource "minio_iam_policy" "user_policy" {

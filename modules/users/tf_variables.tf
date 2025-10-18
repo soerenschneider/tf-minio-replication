@@ -1,3 +1,13 @@
+variable "users" {
+  type = object({
+    user_name = string
+    buckets = map(object({
+      read_paths = optional(list(string), ["/"])
+      write_paths = optional(list(string), ["/"])
+    }))
+  })
+}
+
 variable "bucket_name" {
   description = "Name of the bucket to grant access to. Must be a specific bucket, not '*'."
   type        = string

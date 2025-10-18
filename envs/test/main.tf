@@ -27,7 +27,33 @@ module "users" {
   for_each = {
     for x in var.users : x.name => x
   }
+
+  users = {
+    user_name = "test"
+    buckets = {
+      "replicationtest" = {
+        read_paths = ["/"]
+        write_paths = [""]
+      }
+    }
+  }
   bucket_name          = "replicationtest"
   user_name            = each.value.name
   password_store_paths = coalescelist(each.value.password_store_paths, var.password_store_paths, local.password_store_paths_default)
+}
+
+
+module "vault" {
+  # merge non-empty implicit users and explicit users
+  for_each = {
+    for k, v in merge([
+      for m in [module.users, module.bucket] : m
+      if length(m) > 0
+    ]...) : k => v
+  }
+
+  source               = "../../modules/vault"
+  access_keys          = nonsensitive(each.value.access_keys)
+  password_store_paths = coalescelist(each.value.password_store_paths, var.password_store_paths, local.password_store_paths_default)
+  metadata             = {}
 }

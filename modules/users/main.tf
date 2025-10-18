@@ -16,17 +16,17 @@ locals {
       read_resources = [
         for path in bucket.read_paths :
         path == "/" ? "arn:aws:s3:::${bucket_name}/*" : "arn:aws:s3:::${bucket_name}${path}/*"
+        if trimspace(path) != ""
       ]
       write_resources = [
         for path in bucket.write_paths :
         path == "/" ? "arn:aws:s3:::${bucket_name}/*" : "arn:aws:s3:::${bucket_name}${path}/*"
-      ]
+      if trimspace(path) != ""
+    ]
       read_prefixes = [
         for path in bucket.read_paths :
         path == "/" ? "*" : "${trimprefix(path, "/")}/*"
       ]
-      has_read_access  = length(bucket.read_paths) > 0
-      has_write_access = length(bucket.write_paths) > 0
     }
   }
 }
@@ -36,7 +36,7 @@ data "minio_iam_policy_document" "minio_user_policy" {
   dynamic "statement" {
     for_each = {
       for bucket_name, bucket in local.user_bucket_resources :
-      bucket_name => bucket if bucket.has_read_access
+      bucket_name => bucket if length(bucket.read_resources) > 0
     }
     content {
       actions   = ["s3:GetObject"]
@@ -48,7 +48,7 @@ data "minio_iam_policy_document" "minio_user_policy" {
   dynamic "statement" {
     for_each = {
       for bucket_name, bucket in local.user_bucket_resources :
-      bucket_name => bucket if bucket.has_read_access
+      bucket_name => bucket if length(bucket.read_resources) > 0
     }
     content {
       actions   = ["s3:ListBucket"]
@@ -66,7 +66,7 @@ data "minio_iam_policy_document" "minio_user_policy" {
   dynamic "statement" {
     for_each = {
       for bucket_name, bucket in local.user_bucket_resources :
-      bucket_name => bucket if bucket.has_write_access
+      bucket_name => bucket if length(bucket.write_resources) > 0
     }
     content {
       actions   = ["s3:PutObject", "s3:DeleteObject"]

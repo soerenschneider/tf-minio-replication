@@ -19,6 +19,9 @@ module "bucket" {
   lifecycle_rules = each.value.lifecycle_rules
   replication     = each.value.replication
 
+  create_user          = each.value.create_user
+  password_store_paths = each.value.password_store_paths
+
   force_destroy = local.instance == "dev" ? true : false
 }
 
@@ -32,8 +35,8 @@ module "users" {
     user_name = "test"
     buckets = {
       "replicationtest" = {
-        read_paths = ["/"]
-        write_paths = [""]
+        read_paths  = ["/"]
+        write_paths = ["/uploads"]
       }
     }
   }

@@ -20,14 +20,14 @@ data "minio_iam_policy_document" "implicit" {
       "s3:DeleteObject"
     ]
     resources = [
-      "${var.bucket_name}/*"
+      "arn:aws:s3:::${var.bucket_name}/*"
     ]
   }
 
   statement {
     actions = ["s3:ListBucket"]
     resources = [
-      var.bucket_name
+      "arn:aws:s3:::${var.bucket_name}"
     ]
   }
 }

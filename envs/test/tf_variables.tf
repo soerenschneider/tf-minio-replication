@@ -3,6 +3,9 @@ variable "buckets" {
     name   = string
     region = string
 
+    create_user          = optional(bool, true)
+    password_store_paths = optional(list(string))
+
     versioning = optional(object({
       enabled           = optional(bool, false)
       exclude_folders   = optional(bool, false)

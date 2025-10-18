@@ -5,3 +5,7 @@ output "access_keys" {
     secret_key = minio_iam_service_account.user_key[0].secret_key
   } : {}
 }
+
+output "password_store_paths" {
+  value = var.password_store_paths
+}

@@ -2,7 +2,7 @@ variable "users" {
   type = object({
     user_name = string
     buckets = map(object({
-      read_paths = optional(list(string), ["/"])
+      read_paths  = optional(list(string), ["/"])
       write_paths = optional(list(string), ["/"])
     }))
   })

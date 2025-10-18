@@ -234,3 +234,8 @@ variable "force_destroy" {
   default = false
   type    = bool
 }
+
+variable "password_store_paths" {
+  type        = list(string)
+  description = "Paths to write the credentials to."
+}
